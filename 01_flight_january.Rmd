@@ -1,0 +1,287 @@
+---
+title: "01_flight_january"
+output: html_document
+date: "2026-10-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Flight Delay Data Preprocessing
+
+```{r load-data}
+# Load data
+INPUT_FILE <- "data/T_ONTIME_REPORTING.csv"
+OUTPUT_FILE <- "data/flight_january_2025.csv"
+
+df <- read.csv(
+  INPUT_FILE,
+  stringsAsFactors = FALSE
+)
+
+cat("Original data\n")
+cat("Dataset shape:", nrow(df), "rows,", ncol(df), "columns\n")
+
+cat("\nColumns:\n")
+print(names(df))
+
+cat("\nFirst 5 rows:\n")
+print(head(df, 5))
+
+cat("\nData types:\n")
+str(df)
+```
+
+```{r remove-duplicates}
+# Remove duplicate rows
+duplicate_count <- sum(duplicated(df))
+
+df <- df[!duplicated(df), ]
+
+cat("\nDuplicate rows removed:", duplicate_count, "\n")
+cat("Rows remaining:", nrow(df), "\n")
+```
+
+```{r convert-data}
+# Convert flight date
+df$FL_DATE <- as.Date(
+  df$FL_DATE,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+# Convert numerical columns
+numeric_columns <- c(
+  "CRS_DEP_TIME",
+  "CRS_ARR_TIME",
+  "ARR_DELAY",
+  "CANCELLED",
+  "DIVERTED",
+  "CRS_ELAPSED_TIME",
+  "DISTANCE"
+)
+
+for (column in numeric_columns) {
+  df[[column]] <- as.numeric(df[[column]])
+}
+
+# Check date range
+cat("\nDate range\n")
+cat("Earliest date:", min(df$FL_DATE, na.rm = TRUE), "\n")
+cat("Latest date:", max(df$FL_DATE, na.rm = TRUE), "\n")
+cat("Unique dates:", length(unique(df$FL_DATE)), "\n")
+```
+
+```{r filter-january}
+# Filter January 2025
+df <- df[
+  df$FL_DATE >= as.Date("2025-01-01") &
+    df$FL_DATE < as.Date("2025-02-01"),
+]
+
+cat("\nRows after January 2025 filter:", nrow(df), "\n")
+```
+
+```{r filter-airports}
+# Filter selected airports
+airports <- c("ATL", "ORD", "DFW", "DEN", "JFK")
+
+df <- df[df$ORIGIN %in% airports, ]
+
+cat("\nAirport filter\n")
+cat("Selected airports:", paste(airports, collapse = ", "), "\n")
+
+cat("\nFlights by origin airport:\n")
+print(table(df$ORIGIN))
+
+cat("\nRows after airport filtering:", nrow(df), "\n")
+```
+
+```{r remove-cancelled-diverted}
+# Remove cancelled and diverted flights
+cancelled_count <- sum(df$CANCELLED == 1, na.rm = TRUE)
+diverted_count <- sum(df$DIVERTED == 1, na.rm = TRUE)
+
+df <- df[
+  df$CANCELLED == 0 &
+    df$DIVERTED == 0,
+]
+
+cat("\nCancelled and diverted flights\n")
+cat("Cancelled flights:", cancelled_count, "\n")
+cat("Diverted flights:", diverted_count, "\n")
+cat("Rows after removing cancelled/diverted:", nrow(df), "\n")
+```
+
+```{r remove-missing}
+# Remove missing arrival delay
+missing_arr_delay <- sum(is.na(df$ARR_DELAY))
+
+df <- df[!is.na(df$ARR_DELAY), ]
+
+cat("\nMissing ARR_DELAY removed:", missing_arr_delay, "\n")
+cat("Rows after removing missing target:", nrow(df), "\n")
+```
+
+```{r create-target}
+# Create target variables
+df$major_delay_30 <- as.integer(df$ARR_DELAY >= 30)
+df$major_delay_60 <- as.integer(df$ARR_DELAY >= 60)
+
+# Show target distribution
+show_target_distribution <- function(target_column) {
+
+  counts <- table(
+    factor(df[[target_column]], levels = c(0, 1))
+  )
+
+  percentages <- prop.table(counts) * 100
+
+  result <- data.frame(
+    Count = as.integer(counts),
+    Percentage = as.numeric(percentages)
+  )
+
+  rownames(result) <- c("0", "1")
+
+  cat("\nTarget:", target_column, "\n")
+  print(result)
+}
+
+cat("\nTarget distribution\n")
+
+show_target_distribution("major_delay_30")
+show_target_distribution("major_delay_60")
+```
+
+```{r date-features}
+# Create date features
+df$month <- as.integer(format(df$FL_DATE, "%m"))
+
+df$day_of_week <- as.integer(
+  format(df$FL_DATE, "%u")
+) - 1
+```
+
+```{r scheduled-time}
+# Convert HHMM to minutes
+hhmm_to_minutes <- function(value) {
+
+  if (is.na(value)) {
+    return(NA_real_)
+  }
+
+  value <- as.integer(value)
+
+  hour <- value %/% 100
+  minute <- value %% 100
+
+  if (hour > 23 || minute > 59) {
+    return(NA_real_)
+  }
+
+  return(hour * 60 + minute)
+}
+
+# Create scheduled time features
+df$scheduled_departure_minutes <- sapply(
+  df$CRS_DEP_TIME,
+  hhmm_to_minutes
+)
+
+df$scheduled_arrival_minutes <- sapply(
+  df$CRS_ARR_TIME,
+  hhmm_to_minutes
+)
+
+df$scheduled_departure_hour <- floor(
+  df$scheduled_departure_minutes / 60
+)
+
+df$scheduled_arrival_hour <- floor(
+  df$scheduled_arrival_minutes / 60
+)
+
+# Check scheduled time
+cat("\nScheduled time features\n")
+
+print(
+  head(
+    df[
+      ,
+      c(
+        "CRS_DEP_TIME",
+        "CRS_ARR_TIME",
+        "scheduled_departure_minutes",
+        "scheduled_arrival_minutes",
+        "scheduled_departure_hour",
+        "scheduled_arrival_hour"
+      )
+    ],
+    5
+  )
+)
+
+# Check invalid scheduled times
+invalid_departure_count <- sum(
+  is.na(df$scheduled_departure_minutes)
+)
+
+invalid_arrival_count <- sum(
+  is.na(df$scheduled_arrival_minutes)
+)
+
+cat("\nInvalid scheduled times\n")
+cat("Invalid departure:", invalid_departure_count, "\n")
+cat("Invalid arrival:", invalid_arrival_count, "\n")
+```
+
+```{r missing-values}
+# Check missing values
+cat("\nMissing values\n")
+
+print(colSums(is.na(df)))
+
+cat(
+  "Total missing values:",
+  sum(is.na(df)),
+  "\n"
+)
+```
+
+```{r final-dataset}
+# Final dataset
+cat("\nFinal dataset\n")
+cat("Dataset shape:", nrow(df), "rows,", ncol(df), "columns\n")
+
+cat("\nFirst 5 rows:\n")
+print(head(df, 5))
+
+cat("\nFlights by origin airport:\n")
+print(table(df$ORIGIN))
+
+# Summary statistics
+cat("\nArrival delay statistics\n")
+print(summary(df$ARR_DELAY))
+
+cat("\nMajor delay >= 30 minutes\n")
+print(table(df$major_delay_30))
+
+cat("\nMajor delay >= 60 minutes\n")
+print(table(df$major_delay_60))
+```
+
+```{r save-data}
+# Save processed data
+write.csv(
+  df,
+  OUTPUT_FILE,
+  row.names = FALSE
+)
+
+cat("\nPreprocessing completed\n")
+cat("Output file:", OUTPUT_FILE, "\n")
+cat("Final rows:", nrow(df), "\n")
+cat("Final columns:", ncol(df), "\n")
+cat("File saved successfully.\n")
+```
