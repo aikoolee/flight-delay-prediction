@@ -1,0 +1,421 @@
+
+---
+title: "01_pilot_study_preprocessing"
+output:
+  html_document: default
+  pdf_document: default
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Load Data
+
+```{r}
+INPUT_FILE <- "Raw Data/january.csv"
+OUTPUT_FILE <- "Cleaned Data/january_cleaned.csv"
+
+df <- read.csv(
+  INPUT_FILE,
+  stringsAsFactors = FALSE,
+  colClasses = "character"
+)
+
+cat("Original dataset\n")
+
+cat("Rows:", nrow(df), "\n")
+cat("Columns:", ncol(df), "\n")
+
+cat("\nColumn names:\n")
+
+print(names(df))
+
+cat("\nFirst 5 rows:\n")
+
+print(head(df, 5))
+
+cat("\nOriginal flight dates:\n")
+
+print(head(df$FL_DATE, 10))
+
+cat("\nData structure:\n")
+
+str(df)
+```
+
+## 2. Remove Duplicates
+
+```{r}
+duplicate_count <- sum(duplicated(df))
+
+df <- df[!duplicated(df), ]
+
+cat("Duplicate rows removed:", duplicate_count, "\n")
+
+cat("Rows remaining:", nrow(df), "\n")
+```
+
+## 3. Convert Data Types
+
+```{r}
+cat("FL_DATE before conversion:\n")
+print(head(df$FL_DATE, 5))
+
+cat("\nData type before conversion:\n")
+print(class(df$FL_DATE))
+
+
+# Convert FL_DATE to Date format
+df$FL_DATE <- as.Date(
+  trimws(sub("\\s+.*$", "", df$FL_DATE)),
+  format = "%m/%d/%Y"
+)
+
+if (any(is.na(df$FL_DATE))) {
+  stop("Some flight dates could not be converted. Check the original date values.")
+}
+
+
+# Convert columns to numeric
+numeric_columns <- c(
+  "YEAR",
+  "QUARTER",
+  "MONTH",
+  "DAY_OF_MONTH",
+  "DAY_OF_WEEK",
+  "OP_CARRIER_AIRLINE_ID",
+  "ORIGIN_AIRPORT_ID",
+  "DEST_AIRPORT_ID",
+  "CRS_DEP_TIME",
+  "CRS_ARR_TIME",
+  "CRS_ELAPSED_TIME",
+  "DISTANCE",
+  "ARR_DELAY",
+  "CANCELLED",
+  "DIVERTED"
+)
+
+for (column in numeric_columns) {
+  df[[column]] <- as.numeric(df[[column]])
+}
+
+
+cat("\nData types after conversion:\n")
+str(df)
+
+
+cat("\nConverted flight dates:\n")
+print(head(df$FL_DATE, 5))
+
+cat("\nData type after conversion:\n")
+print(class(df$FL_DATE))
+```
+
+## 4. Check Date Range
+
+```{r}
+cat("Date range\n")
+
+cat(
+  "Earliest date:",
+  format(min(df$FL_DATE), "%Y-%m-%d"),
+  "\n"
+)
+
+cat(
+  "Latest date:",
+  format(max(df$FL_DATE), "%Y-%m-%d"),
+  "\n"
+)
+
+cat("\nFlights by year:\n")
+
+print(table(df$YEAR))
+
+cat("\nFlights by month:\n")
+
+print(table(df$MONTH))
+
+if (any(df$YEAR != 2025)) {
+  stop("The dataset contains dates outside 2025.")
+}
+
+if (any(df$MONTH != 1)) {
+  stop("The dataset contains flights outside January.")
+}
+```
+
+## 5. Filter Selected Origin Airports
+
+```{r}
+airports <- c("ATL", "ORD", "DFW", "DEN", "JFK")
+
+df <- df[df$ORIGIN %in% airports, ]
+
+cat("Selected origin airports:\n")
+
+print(airports)
+
+cat("\nFlights by origin airport:\n")
+
+print(table(df$ORIGIN))
+
+cat("\nRows after airport filtering:", nrow(df), "\n")
+```
+
+## 6. Check Cancelled and Diverted Flights
+
+```{r}
+cancelled_count <- sum(df$CANCELLED == 1, na.rm = TRUE)
+
+diverted_count <- sum(df$DIVERTED == 1, na.rm = TRUE)
+
+cat("Cancelled flights:", cancelled_count, "\n")
+
+cat("Diverted flights:", diverted_count, "\n")
+
+cat("\nCancelled flights by origin:\n")
+
+print(table(df$ORIGIN[df$CANCELLED == 1]))
+
+cat("\nDiverted flights by origin:\n")
+
+print(table(df$ORIGIN[df$DIVERTED == 1]))
+```
+
+## 7. Remove Cancelled and Diverted Flights
+
+```{r}
+df <- df[
+  !is.na(df$CANCELLED) &
+    !is.na(df$DIVERTED) &
+    df$CANCELLED == 0 &
+    df$DIVERTED == 0,
+]
+
+cat(
+  "Rows after removing cancelled and diverted flights:",
+  nrow(df),
+  "\n"
+)
+```
+
+## 8. Remove Missing Arrival Delay
+
+```{r}
+missing_arr_delay <- sum(is.na(df$ARR_DELAY))
+
+df <- df[!is.na(df$ARR_DELAY), ]
+
+cat("Missing arrival delays removed:", missing_arr_delay, "\n")
+
+cat("Rows remaining:", nrow(df), "\n")
+```
+
+## 9. Create Target Variables
+
+```{r}
+df$major_delay_30 <- as.integer(df$ARR_DELAY >= 30)
+
+df$major_delay_60 <- as.integer(df$ARR_DELAY >= 60)
+
+cat("Major delay >= 30 minutes:\n")
+
+print(table(df$major_delay_30))
+
+cat("\nMajor delay >= 60 minutes:\n")
+
+print(table(df$major_delay_60))
+```
+
+## 10. Create Date Features
+
+```{r}
+df$month <- as.integer(format(df$FL_DATE, "%m"))
+
+df$day_of_week <- as.integer(
+  format(df$FL_DATE, "%u")
+) - 1
+
+df$day_of_month <- as.integer(
+  format(df$FL_DATE, "%d")
+)
+
+cat("Date features created.\n")
+
+print(
+  head(df[, c(
+    "FL_DATE",
+    "month",
+    "day_of_week",
+    "day_of_month"
+  )])
+)
+```
+
+## 11. Create Scheduled Time Features
+
+```{r}
+hhmm_to_minutes <- function(value) {
+
+  if (is.na(value)) {
+    return(NA_real_)
+  }
+
+  value <- as.integer(value)
+
+  if (value == 2400) {
+    return(0)
+  }
+
+  hour <- value %/% 100
+  minute <- value %% 100
+
+  if (hour > 23 || minute > 59) {
+    return(NA_real_)
+  }
+
+  return(hour * 60 + minute)
+}
+
+df$scheduled_departure_minutes <- sapply(
+  df$CRS_DEP_TIME,
+  hhmm_to_minutes
+)
+
+df$scheduled_arrival_minutes <- sapply(
+  df$CRS_ARR_TIME,
+  hhmm_to_minutes
+)
+
+df$scheduled_departure_hour <- floor(
+  df$scheduled_departure_minutes / 60
+)
+
+df$scheduled_arrival_hour <- floor(
+  df$scheduled_arrival_minutes / 60
+)
+
+cat("Scheduled time features created.\n")
+
+print(
+  head(df[, c(
+    "CRS_DEP_TIME",
+    "CRS_ARR_TIME",
+    "scheduled_departure_minutes",
+    "scheduled_arrival_minutes",
+    "scheduled_departure_hour",
+    "scheduled_arrival_hour"
+  )])
+)
+```
+
+## 12. Check Invalid Scheduled Times
+
+```{r}
+invalid_departure_count <- sum(
+  is.na(df$scheduled_departure_minutes)
+)
+
+invalid_arrival_count <- sum(
+  is.na(df$scheduled_arrival_minutes)
+)
+
+cat(
+  "Invalid departure times:",
+  invalid_departure_count,
+  "\n"
+)
+
+cat(
+  "Invalid arrival times:",
+  invalid_arrival_count,
+  "\n"
+)
+```
+
+## 13. Check Missing Values
+
+```{r}
+missing_values <- colSums(is.na(df))
+
+print(missing_values)
+
+cat(
+  "\nTotal missing values:",
+  sum(missing_values),
+  "\n"
+)
+```
+
+## 14. Final Dataset Summary
+
+```{r}
+cat("Final dataset\n")
+
+cat("Rows:", nrow(df), "\n")
+
+cat("Columns:", ncol(df), "\n")
+
+cat("\nFlights by origin airport:\n")
+
+print(table(df$ORIGIN))
+
+cat("\nFlights by airline:\n")
+
+print(table(df$OP_UNIQUE_CARRIER))
+
+cat("\nFirst 5 rows:\n")
+
+print(head(df, 5))
+```
+
+## 15. Summary Statistics
+
+```{r}
+cat("Arrival delay statistics:\n")
+
+print(summary(df$ARR_DELAY))
+
+cat("\nMajor delay >= 30 minutes:\n")
+
+print(table(df$major_delay_30))
+
+cat("\nMajor delay >= 60 minutes:\n")
+
+print(table(df$major_delay_60))
+
+cat("\nDistance statistics:\n")
+
+print(summary(df$DISTANCE))
+
+cat("\nScheduled elapsed time statistics:\n")
+
+print(summary(df$CRS_ELAPSED_TIME))
+```
+
+## 16. Save Cleaned Dataset
+
+```{r}
+if (!dir.exists("Cleaned Data")) {
+  dir.create("Cleaned Data")
+}
+
+write.csv(
+  df,
+  OUTPUT_FILE,
+  row.names = FALSE
+)
+
+cat("Preprocessing completed.\n")
+
+cat("Output file:", OUTPUT_FILE, "\n")
+
+cat("Final rows:", nrow(df), "\n")
+
+cat("Final columns:", ncol(df), "\n")
+
+cat("File saved successfully.\n")
+```
