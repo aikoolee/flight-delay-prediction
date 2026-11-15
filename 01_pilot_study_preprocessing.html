@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2026-11-04" />
+<meta name="date" content="2026-11-15" />
 
 <title>01_pilot_study_preprocessing</title>
 
@@ -350,233 +350,358 @@ display: none;
 
 
 <h1 class="title toc-ignore">01_pilot_study_preprocessing</h1>
-<h4 class="date">2026-11-04</h4>
+<h4 class="date">2026-11-15</h4>
 
 </div>
 
 
 <div id="load-data" class="section level2">
 <h2>1. Load Data</h2>
-<pre class="r"><code>INPUT_FILE &lt;- &quot;Raw Data/january.csv&quot;
-OUTPUT_FILE &lt;- &quot;Cleaned Data/january_cleaned.csv&quot;
+<pre class="r"><code>INPUT_FILE &lt;- &quot;Raw Data New/december.csv&quot;
+OUTPUT_FILE &lt;- &quot;Cleaned Data/december_cleaned.csv&quot;
+
+TARGET_YEAR &lt;- &quot;2025&quot;
+TARGET_MONTH &lt;- &quot;12&quot;
 
 df &lt;- read.csv(
   INPUT_FILE,
   stringsAsFactors = FALSE,
-  colClasses = &quot;character&quot;
+  colClasses = &quot;character&quot;,
+  na.strings = c(&quot;&quot;, &quot;NA&quot;)
 )
 
 cat(&quot;Original dataset\n&quot;)</code></pre>
 <pre><code>## Original dataset</code></pre>
 <pre class="r"><code>cat(&quot;Rows:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows: 539747</code></pre>
+<pre><code>## Rows: 582304</code></pre>
 <pre class="r"><code>cat(&quot;Columns:&quot;, ncol(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Columns: 19</code></pre>
+<pre><code>## Columns: 15</code></pre>
 <pre class="r"><code>cat(&quot;\nColumn names:\n&quot;)</code></pre>
 <pre><code>## 
 ## Column names:</code></pre>
 <pre class="r"><code>print(names(df))</code></pre>
-<pre><code>##  [1] &quot;YEAR&quot;                  &quot;QUARTER&quot;               &quot;MONTH&quot;                
-##  [4] &quot;DAY_OF_MONTH&quot;          &quot;DAY_OF_WEEK&quot;           &quot;FL_DATE&quot;              
-##  [7] &quot;OP_UNIQUE_CARRIER&quot;     &quot;OP_CARRIER_AIRLINE_ID&quot; &quot;ORIGIN_AIRPORT_ID&quot;    
-## [10] &quot;ORIGIN&quot;                &quot;DEST_AIRPORT_ID&quot;       &quot;DEST&quot;                 
-## [13] &quot;CRS_DEP_TIME&quot;          &quot;CRS_ARR_TIME&quot;          &quot;ARR_DELAY&quot;            
-## [16] &quot;CANCELLED&quot;             &quot;DIVERTED&quot;              &quot;CRS_ELAPSED_TIME&quot;     
-## [19] &quot;DISTANCE&quot;</code></pre>
+<pre><code>##  [1] &quot;FL_DATE&quot;           &quot;OP_UNIQUE_CARRIER&quot; &quot;OP_CARRIER_FL_NUM&quot;
+##  [4] &quot;ORIGIN_AIRPORT_ID&quot; &quot;ORIGIN&quot;            &quot;DEST_AIRPORT_ID&quot;  
+##  [7] &quot;DEST&quot;              &quot;CRS_DEP_TIME&quot;      &quot;CRS_ARR_TIME&quot;     
+## [10] &quot;ARR_DELAY&quot;         &quot;CANCELLED&quot;         &quot;CANCELLATION_CODE&quot;
+## [13] &quot;DIVERTED&quot;          &quot;CRS_ELAPSED_TIME&quot;  &quot;DISTANCE&quot;</code></pre>
 <pre class="r"><code>cat(&quot;\nFirst 5 rows:\n&quot;)</code></pre>
 <pre><code>## 
 ## First 5 rows:</code></pre>
 <pre class="r"><code>print(head(df, 5))</code></pre>
-<pre><code>##   YEAR QUARTER MONTH DAY_OF_MONTH DAY_OF_WEEK              FL_DATE
-## 1 2025       1     1            1           3 1/1/2025 12:00:00 AM
-## 2 2025       1     1            1           3 1/1/2025 12:00:00 AM
-## 3 2025       1     1            1           3 1/1/2025 12:00:00 AM
-## 4 2025       1     1            1           3 1/1/2025 12:00:00 AM
-## 5 2025       1     1            1           3 1/1/2025 12:00:00 AM
-##   OP_UNIQUE_CARRIER OP_CARRIER_AIRLINE_ID ORIGIN_AIRPORT_ID ORIGIN
-## 1                AA                 19805             10140    ABQ
-## 2                AA                 19805             10140    ABQ
-## 3                AA                 19805             10140    ABQ
-## 4                AA                 19805             10140    ABQ
-## 5                AA                 19805             10140    ABQ
-##   DEST_AIRPORT_ID DEST CRS_DEP_TIME CRS_ARR_TIME ARR_DELAY CANCELLED DIVERTED
-## 1           11298  DFW         0500         0754    -21.00      0.00     0.00
-## 2           11298  DFW         0555         0849    -17.00      0.00     0.00
-## 3           11298  DFW         0820         1114    -22.00      0.00     0.00
-## 4           11298  DFW         1032         1323    -23.00      0.00     0.00
-## 5           11298  DFW         1700         1948     17.00      0.00     0.00
-##   CRS_ELAPSED_TIME DISTANCE
-## 1           114.00   569.00
-## 2           114.00   569.00
-## 3           114.00   569.00
-## 4           111.00   569.00
-## 5           108.00   569.00</code></pre>
+<pre><code>##                 FL_DATE OP_UNIQUE_CARRIER OP_CARRIER_FL_NUM ORIGIN_AIRPORT_ID
+## 1 12/1/2025 12:00:00 AM                AA                 1             12478
+## 2 12/1/2025 12:00:00 AM                AA                10             12892
+## 3 12/1/2025 12:00:00 AM                AA              1002             14307
+## 4 12/1/2025 12:00:00 AM                AA              1003             11292
+## 5 12/1/2025 12:00:00 AM                AA              1004             10721
+##   ORIGIN DEST_AIRPORT_ID DEST CRS_DEP_TIME CRS_ARR_TIME ARR_DELAY CANCELLED
+## 1    JFK           12892  LAX         0700         1035     -5.00      0.00
+## 2    LAX           12478  JFK         2215         0632     -2.00      0.00
+## 3    PVD           13930  ORD         0640         0835     -3.00      0.00
+## 4    DEN           13303  MIA         0017         0600      5.00      0.00
+## 5    BOS           11057  CLT         0730         1014    -21.00      0.00
+##   CANCELLATION_CODE DIVERTED CRS_ELAPSED_TIME DISTANCE
+## 1              &lt;NA&gt;     0.00           395.00  2475.00
+## 2              &lt;NA&gt;     0.00           317.00  2475.00
+## 3              &lt;NA&gt;     0.00           175.00   849.00
+## 4              &lt;NA&gt;     0.00           223.00  1709.00
+## 5              &lt;NA&gt;     0.00           164.00   728.00</code></pre>
 <pre class="r"><code>cat(&quot;\nOriginal flight dates:\n&quot;)</code></pre>
 <pre><code>## 
 ## Original flight dates:</code></pre>
 <pre class="r"><code>print(head(df$FL_DATE, 10))</code></pre>
-<pre><code>##  [1] &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot;
-##  [4] &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot;
-##  [7] &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot;
-## [10] &quot;1/1/2025 12:00:00 AM&quot;</code></pre>
+<pre><code>##  [1] &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot;
+##  [4] &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot;
+##  [7] &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot;
+## [10] &quot;12/1/2025 12:00:00 AM&quot;</code></pre>
 <pre class="r"><code>cat(&quot;\nData structure:\n&quot;)</code></pre>
 <pre><code>## 
 ## Data structure:</code></pre>
 <pre class="r"><code>str(df)</code></pre>
-<pre><code>## &#39;data.frame&#39;:    539747 obs. of  19 variables:
-##  $ YEAR                 : chr  &quot;2025&quot; &quot;2025&quot; &quot;2025&quot; &quot;2025&quot; ...
-##  $ QUARTER              : chr  &quot;1&quot; &quot;1&quot; &quot;1&quot; &quot;1&quot; ...
-##  $ MONTH                : chr  &quot;1&quot; &quot;1&quot; &quot;1&quot; &quot;1&quot; ...
-##  $ DAY_OF_MONTH         : chr  &quot;1&quot; &quot;1&quot; &quot;1&quot; &quot;1&quot; ...
-##  $ DAY_OF_WEEK          : chr  &quot;3&quot; &quot;3&quot; &quot;3&quot; &quot;3&quot; ...
-##  $ FL_DATE              : chr  &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; ...
-##  $ OP_UNIQUE_CARRIER    : chr  &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; ...
-##  $ OP_CARRIER_AIRLINE_ID: chr  &quot;19805&quot; &quot;19805&quot; &quot;19805&quot; &quot;19805&quot; ...
-##  $ ORIGIN_AIRPORT_ID    : chr  &quot;10140&quot; &quot;10140&quot; &quot;10140&quot; &quot;10140&quot; ...
-##  $ ORIGIN               : chr  &quot;ABQ&quot; &quot;ABQ&quot; &quot;ABQ&quot; &quot;ABQ&quot; ...
-##  $ DEST_AIRPORT_ID      : chr  &quot;11298&quot; &quot;11298&quot; &quot;11298&quot; &quot;11298&quot; ...
-##  $ DEST                 : chr  &quot;DFW&quot; &quot;DFW&quot; &quot;DFW&quot; &quot;DFW&quot; ...
-##  $ CRS_DEP_TIME         : chr  &quot;0500&quot; &quot;0555&quot; &quot;0820&quot; &quot;1032&quot; ...
-##  $ CRS_ARR_TIME         : chr  &quot;0754&quot; &quot;0849&quot; &quot;1114&quot; &quot;1323&quot; ...
-##  $ ARR_DELAY            : chr  &quot;-21.00&quot; &quot;-17.00&quot; &quot;-22.00&quot; &quot;-23.00&quot; ...
-##  $ CANCELLED            : chr  &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; ...
-##  $ DIVERTED             : chr  &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; ...
-##  $ CRS_ELAPSED_TIME     : chr  &quot;114.00&quot; &quot;114.00&quot; &quot;114.00&quot; &quot;111.00&quot; ...
-##  $ DISTANCE             : chr  &quot;569.00&quot; &quot;569.00&quot; &quot;569.00&quot; &quot;569.00&quot; ...</code></pre>
+<pre><code>## &#39;data.frame&#39;:    582304 obs. of  15 variables:
+##  $ FL_DATE          : chr  &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; ...
+##  $ OP_UNIQUE_CARRIER: chr  &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; ...
+##  $ OP_CARRIER_FL_NUM: chr  &quot;1&quot; &quot;10&quot; &quot;1002&quot; &quot;1003&quot; ...
+##  $ ORIGIN_AIRPORT_ID: chr  &quot;12478&quot; &quot;12892&quot; &quot;14307&quot; &quot;11292&quot; ...
+##  $ ORIGIN           : chr  &quot;JFK&quot; &quot;LAX&quot; &quot;PVD&quot; &quot;DEN&quot; ...
+##  $ DEST_AIRPORT_ID  : chr  &quot;12892&quot; &quot;12478&quot; &quot;13930&quot; &quot;13303&quot; ...
+##  $ DEST             : chr  &quot;LAX&quot; &quot;JFK&quot; &quot;ORD&quot; &quot;MIA&quot; ...
+##  $ CRS_DEP_TIME     : chr  &quot;0700&quot; &quot;2215&quot; &quot;0640&quot; &quot;0017&quot; ...
+##  $ CRS_ARR_TIME     : chr  &quot;1035&quot; &quot;0632&quot; &quot;0835&quot; &quot;0600&quot; ...
+##  $ ARR_DELAY        : chr  &quot;-5.00&quot; &quot;-2.00&quot; &quot;-3.00&quot; &quot;5.00&quot; ...
+##  $ CANCELLED        : chr  &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; ...
+##  $ CANCELLATION_CODE: chr  NA NA NA NA ...
+##  $ DIVERTED         : chr  &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; &quot;0.00&quot; ...
+##  $ CRS_ELAPSED_TIME : chr  &quot;395.00&quot; &quot;317.00&quot; &quot;175.00&quot; &quot;223.00&quot; ...
+##  $ DISTANCE         : chr  &quot;2475.00&quot; &quot;2475.00&quot; &quot;849.00&quot; &quot;1709.00&quot; ...</code></pre>
+</div>
+<div id="check-required-columns" class="section level2">
+<h2>2. Check Required Columns</h2>
+<pre class="r"><code>required_columns &lt;- c(
+  &quot;FL_DATE&quot;,
+  &quot;OP_UNIQUE_CARRIER&quot;,
+  &quot;OP_CARRIER_FL_NUM&quot;,
+  &quot;ORIGIN_AIRPORT_ID&quot;,
+  &quot;ORIGIN&quot;,
+  &quot;DEST_AIRPORT_ID&quot;,
+  &quot;DEST&quot;,
+  &quot;CRS_DEP_TIME&quot;,
+  &quot;CRS_ARR_TIME&quot;,
+  &quot;ARR_DELAY&quot;,
+  &quot;CANCELLED&quot;,
+  &quot;DIVERTED&quot;,
+  &quot;CRS_ELAPSED_TIME&quot;,
+  &quot;DISTANCE&quot;
+)
+
+missing_columns &lt;- setdiff(
+  required_columns,
+  names(df)
+)
+
+if (length(missing_columns) &gt; 0) {
+  stop(
+    paste(
+      &quot;Missing required columns:&quot;,
+      paste(missing_columns, collapse = &quot;, &quot;)
+    )
+  )
+}
+
+cat(&quot;All required columns are available.\n&quot;)</code></pre>
+<pre><code>## All required columns are available.</code></pre>
+</div>
+<div id="check-and-remove-empty-columns" class="section level2">
+<h2>3. Check and Remove Empty Columns</h2>
+<pre class="r"><code>if (&quot;CANCELLATION_CODE&quot; %in% names(df)) {
+
+  cancellation_values &lt;- trimws(
+    df$CANCELLATION_CODE
+  )
+
+  if (all(
+    is.na(cancellation_values) |
+    cancellation_values == &quot;&quot;
+  )) {
+
+    df$CANCELLATION_CODE &lt;- NULL
+
+    cat(
+      &quot;CANCELLATION_CODE removed because all values are empty or NA.\n&quot;
+    )
+
+  } else {
+
+    cat(
+      &quot;CANCELLATION_CODE retained because it contains valid values.\n&quot;
+    )
+
+  }
+
+}</code></pre>
+<pre><code>## CANCELLATION_CODE retained because it contains valid values.</code></pre>
+<pre class="r"><code>cat(&quot;\nColumns after checking empty columns:\n&quot;)</code></pre>
+<pre><code>## 
+## Columns after checking empty columns:</code></pre>
+<pre class="r"><code>print(names(df))</code></pre>
+<pre><code>##  [1] &quot;FL_DATE&quot;           &quot;OP_UNIQUE_CARRIER&quot; &quot;OP_CARRIER_FL_NUM&quot;
+##  [4] &quot;ORIGIN_AIRPORT_ID&quot; &quot;ORIGIN&quot;            &quot;DEST_AIRPORT_ID&quot;  
+##  [7] &quot;DEST&quot;              &quot;CRS_DEP_TIME&quot;      &quot;CRS_ARR_TIME&quot;     
+## [10] &quot;ARR_DELAY&quot;         &quot;CANCELLED&quot;         &quot;CANCELLATION_CODE&quot;
+## [13] &quot;DIVERTED&quot;          &quot;CRS_ELAPSED_TIME&quot;  &quot;DISTANCE&quot;</code></pre>
 </div>
 <div id="remove-duplicates" class="section level2">
-<h2>2. Remove Duplicates</h2>
+<h2>4. Remove Duplicates</h2>
 <pre class="r"><code>duplicate_count &lt;- sum(duplicated(df))
 
 df &lt;- df[!duplicated(df), ]
 
 cat(&quot;Duplicate rows removed:&quot;, duplicate_count, &quot;\n&quot;)</code></pre>
-<pre><code>## Duplicate rows removed: 1</code></pre>
+<pre><code>## Duplicate rows removed: 0</code></pre>
 <pre class="r"><code>cat(&quot;Rows remaining:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows remaining: 539746</code></pre>
+<pre><code>## Rows remaining: 582304</code></pre>
 </div>
 <div id="convert-data-types" class="section level2">
-<h2>3. Convert Data Types</h2>
+<h2>5. Convert Data Types</h2>
 <pre class="r"><code>cat(&quot;FL_DATE before conversion:\n&quot;)</code></pre>
 <pre><code>## FL_DATE before conversion:</code></pre>
 <pre class="r"><code>print(head(df$FL_DATE, 5))</code></pre>
-<pre><code>## [1] &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot;
-## [4] &quot;1/1/2025 12:00:00 AM&quot; &quot;1/1/2025 12:00:00 AM&quot;</code></pre>
+<pre><code>## [1] &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot;
+## [4] &quot;12/1/2025 12:00:00 AM&quot; &quot;12/1/2025 12:00:00 AM&quot;</code></pre>
 <pre class="r"><code>cat(&quot;\nData type before conversion:\n&quot;)</code></pre>
 <pre><code>## 
 ## Data type before conversion:</code></pre>
 <pre class="r"><code>print(class(df$FL_DATE))</code></pre>
 <pre><code>## [1] &quot;character&quot;</code></pre>
-<pre class="r"><code># Convert FL_DATE to Date format
-df$FL_DATE &lt;- as.Date(
-  trimws(sub(&quot;\\s+.*$&quot;, &quot;&quot;, df$FL_DATE)),
+<pre class="r"><code># Convert FL_DATE to ISO 8601 format (YYYY-MM-DD)
+
+date_values &lt;- trimws(df$FL_DATE)
+
+date_values &lt;- sub(
+  &quot;\\s+.*$&quot;,
+  &quot;&quot;,
+  date_values
+)
+
+parsed_dates &lt;- as.Date(
+  date_values,
   format = &quot;%m/%d/%Y&quot;
 )
 
-if (any(is.na(df$FL_DATE))) {
-  stop(&quot;Some flight dates could not be converted. Check the original date values.&quot;)
+iso_dates &lt;- as.Date(
+  date_values,
+  format = &quot;%Y-%m-%d&quot;
+)
+
+parsed_dates[is.na(parsed_dates)] &lt;-
+  iso_dates[is.na(parsed_dates)]
+
+if (any(is.na(parsed_dates))) {
+  stop(&quot;Some flight dates could not be converted.&quot;)
 }
 
+df$FL_DATE &lt;- parsed_dates
 
-# Convert columns to numeric
+
+# Convert numeric columns
+
 numeric_columns &lt;- c(
+  &quot;ORIGIN_AIRPORT_ID&quot;,
+  &quot;DEST_AIRPORT_ID&quot;,
+  &quot;CRS_DEP_TIME&quot;,
+  &quot;CRS_ARR_TIME&quot;,
+  &quot;ARR_DELAY&quot;,
+  &quot;CANCELLED&quot;,
+  &quot;DIVERTED&quot;,
+  &quot;CRS_ELAPSED_TIME&quot;,
+  &quot;DISTANCE&quot;
+)
+
+optional_numeric_columns &lt;- c(
   &quot;YEAR&quot;,
   &quot;QUARTER&quot;,
   &quot;MONTH&quot;,
   &quot;DAY_OF_MONTH&quot;,
   &quot;DAY_OF_WEEK&quot;,
-  &quot;OP_CARRIER_AIRLINE_ID&quot;,
-  &quot;ORIGIN_AIRPORT_ID&quot;,
-  &quot;DEST_AIRPORT_ID&quot;,
-  &quot;CRS_DEP_TIME&quot;,
-  &quot;CRS_ARR_TIME&quot;,
-  &quot;CRS_ELAPSED_TIME&quot;,
-  &quot;DISTANCE&quot;,
-  &quot;ARR_DELAY&quot;,
-  &quot;CANCELLED&quot;,
-  &quot;DIVERTED&quot;
+  &quot;OP_CARRIER_AIRLINE_ID&quot;
+)
+
+numeric_columns &lt;- c(
+  numeric_columns,
+  intersect(optional_numeric_columns, names(df))
 )
 
 for (column in numeric_columns) {
-  df[[column]] &lt;- as.numeric(df[[column]])
+
+  original_values &lt;- df[[column]]
+
+  converted_values &lt;- suppressWarnings(
+    as.numeric(original_values)
+  )
+
+  conversion_errors &lt;- !is.na(original_values) &amp;
+    is.na(converted_values)
+
+  if (any(conversion_errors)) {
+    stop(
+      paste(
+        &quot;Invalid numeric values found in column:&quot;,
+        column
+      )
+    )
+  }
+
+  df[[column]] &lt;- converted_values
 }
+
+
+# Keep flight number as character
+
+df$OP_CARRIER_FL_NUM &lt;- as.character(
+  df$OP_CARRIER_FL_NUM
+)
 
 
 cat(&quot;\nData types after conversion:\n&quot;)</code></pre>
 <pre><code>## 
 ## Data types after conversion:</code></pre>
 <pre class="r"><code>str(df)</code></pre>
-<pre><code>## &#39;data.frame&#39;:    539746 obs. of  19 variables:
-##  $ YEAR                 : num  2025 2025 2025 2025 2025 ...
-##  $ QUARTER              : num  1 1 1 1 1 1 1 1 1 1 ...
-##  $ MONTH                : num  1 1 1 1 1 1 1 1 1 1 ...
-##  $ DAY_OF_MONTH         : num  1 1 1 1 1 1 1 1 1 1 ...
-##  $ DAY_OF_WEEK          : num  3 3 3 3 3 3 3 3 3 3 ...
-##  $ FL_DATE              : Date, format: &quot;2025-01-01&quot; &quot;2025-01-01&quot; ...
-##  $ OP_UNIQUE_CARRIER    : chr  &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; ...
-##  $ OP_CARRIER_AIRLINE_ID: num  19805 19805 19805 19805 19805 ...
-##  $ ORIGIN_AIRPORT_ID    : num  10140 10140 10140 10140 10140 ...
-##  $ ORIGIN               : chr  &quot;ABQ&quot; &quot;ABQ&quot; &quot;ABQ&quot; &quot;ABQ&quot; ...
-##  $ DEST_AIRPORT_ID      : num  11298 11298 11298 11298 11298 ...
-##  $ DEST                 : chr  &quot;DFW&quot; &quot;DFW&quot; &quot;DFW&quot; &quot;DFW&quot; ...
-##  $ CRS_DEP_TIME         : num  500 555 820 1032 1700 ...
-##  $ CRS_ARR_TIME         : num  754 849 1114 1323 1948 ...
-##  $ ARR_DELAY            : num  -21 -17 -22 -23 17 -13 -41 10 6 NA ...
-##  $ CANCELLED            : num  0 0 0 0 0 0 0 0 0 0 ...
-##  $ DIVERTED             : num  0 0 0 0 0 0 0 0 0 1 ...
-##  $ CRS_ELAPSED_TIME     : num  114 114 114 111 108 173 159 149 149 257 ...
-##  $ DISTANCE             : num  569 569 569 569 569 ...</code></pre>
+<pre><code>## &#39;data.frame&#39;:    582304 obs. of  15 variables:
+##  $ FL_DATE          : Date, format: &quot;2025-12-01&quot; &quot;2025-12-01&quot; ...
+##  $ OP_UNIQUE_CARRIER: chr  &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; &quot;AA&quot; ...
+##  $ OP_CARRIER_FL_NUM: chr  &quot;1&quot; &quot;10&quot; &quot;1002&quot; &quot;1003&quot; ...
+##  $ ORIGIN_AIRPORT_ID: num  12478 12892 14307 11292 10721 ...
+##  $ ORIGIN           : chr  &quot;JFK&quot; &quot;LAX&quot; &quot;PVD&quot; &quot;DEN&quot; ...
+##  $ DEST_AIRPORT_ID  : num  12892 12478 13930 13303 11057 ...
+##  $ DEST             : chr  &quot;LAX&quot; &quot;JFK&quot; &quot;ORD&quot; &quot;MIA&quot; ...
+##  $ CRS_DEP_TIME     : num  700 2215 640 17 730 ...
+##  $ CRS_ARR_TIME     : num  1035 632 835 600 1014 ...
+##  $ ARR_DELAY        : num  -5 -2 -3 5 -21 36 -10 -9 34 10 ...
+##  $ CANCELLED        : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ CANCELLATION_CODE: chr  NA NA NA NA ...
+##  $ DIVERTED         : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ CRS_ELAPSED_TIME : num  395 317 175 223 164 233 329 87 157 134 ...
+##  $ DISTANCE         : num  2475 2475 849 1709 728 ...</code></pre>
 <pre class="r"><code>cat(&quot;\nConverted flight dates:\n&quot;)</code></pre>
 <pre><code>## 
 ## Converted flight dates:</code></pre>
 <pre class="r"><code>print(head(df$FL_DATE, 5))</code></pre>
-<pre><code>## [1] &quot;2025-01-01&quot; &quot;2025-01-01&quot; &quot;2025-01-01&quot; &quot;2025-01-01&quot; &quot;2025-01-01&quot;</code></pre>
-<pre class="r"><code>cat(&quot;\nData type after conversion:\n&quot;)</code></pre>
+<pre><code>## [1] &quot;2025-12-01&quot; &quot;2025-12-01&quot; &quot;2025-12-01&quot; &quot;2025-12-01&quot; &quot;2025-12-01&quot;</code></pre>
+<pre class="r"><code>cat(&quot;\nFL_DATE data type:\n&quot;)</code></pre>
 <pre><code>## 
-## Data type after conversion:</code></pre>
+## FL_DATE data type:</code></pre>
 <pre class="r"><code>print(class(df$FL_DATE))</code></pre>
 <pre><code>## [1] &quot;Date&quot;</code></pre>
 </div>
 <div id="check-date-range" class="section level2">
-<h2>4. Check Date Range</h2>
+<h2>6. Check Date Range</h2>
 <pre class="r"><code>cat(&quot;Date range\n&quot;)</code></pre>
 <pre><code>## Date range</code></pre>
-<pre class="r"><code>cat(
+<pre class="r"><code>if (nrow(df) == 0) {
+  stop(&quot;The dataset is empty.&quot;)
+}
+
+cat(
   &quot;Earliest date:&quot;,
   format(min(df$FL_DATE), &quot;%Y-%m-%d&quot;),
   &quot;\n&quot;
 )</code></pre>
-<pre><code>## Earliest date: 2025-01-01</code></pre>
+<pre><code>## Earliest date: 2025-12-01</code></pre>
 <pre class="r"><code>cat(
   &quot;Latest date:&quot;,
   format(max(df$FL_DATE), &quot;%Y-%m-%d&quot;),
   &quot;\n&quot;
 )</code></pre>
-<pre><code>## Latest date: 2025-01-31</code></pre>
+<pre><code>## Latest date: 2025-12-31</code></pre>
 <pre class="r"><code>cat(&quot;\nFlights by year:\n&quot;)</code></pre>
 <pre><code>## 
 ## Flights by year:</code></pre>
-<pre class="r"><code>print(table(df$YEAR))</code></pre>
+<pre class="r"><code>print(table(format(df$FL_DATE, &quot;%Y&quot;)))</code></pre>
 <pre><code>## 
 ##   2025 
-## 539746</code></pre>
+## 582304</code></pre>
 <pre class="r"><code>cat(&quot;\nFlights by month:\n&quot;)</code></pre>
 <pre><code>## 
 ## Flights by month:</code></pre>
-<pre class="r"><code>print(table(df$MONTH))</code></pre>
+<pre class="r"><code>print(table(format(df$FL_DATE, &quot;%m&quot;)))</code></pre>
 <pre><code>## 
-##      1 
-## 539746</code></pre>
-<pre class="r"><code>if (any(df$YEAR != 2025)) {
-  stop(&quot;The dataset contains dates outside 2025.&quot;)
+##     12 
+## 582304</code></pre>
+<pre class="r"><code>if (any(format(df$FL_DATE, &quot;%Y&quot;) != TARGET_YEAR)) {
+  stop(&quot;The dataset contains dates outside the selected year.&quot;)
 }
 
-if (any(df$MONTH != 1)) {
-  stop(&quot;The dataset contains flights outside January.&quot;)
-}</code></pre>
+if (any(format(df$FL_DATE, &quot;%m&quot;) != TARGET_MONTH)) {
+  stop(&quot;The dataset contains flights outside the selected month.&quot;)
+}
+
+cat(&quot;\nDate validation successful.\n&quot;)</code></pre>
+<pre><code>## 
+## Date validation successful.</code></pre>
 </div>
 <div id="filter-selected-origin-airports" class="section level2">
-<h2>5. Filter Selected Origin Airports</h2>
+<h2>7. Filter Selected Origin Airports</h2>
 <pre class="r"><code>airports &lt;- c(&quot;ATL&quot;, &quot;ORD&quot;, &quot;DFW&quot;, &quot;DEN&quot;, &quot;JFK&quot;)
 
 df &lt;- df[df$ORIGIN %in% airports, ]
@@ -591,43 +716,49 @@ cat(&quot;Selected origin airports:\n&quot;)</code></pre>
 <pre class="r"><code>print(table(df$ORIGIN))</code></pre>
 <pre><code>## 
 ##   ATL   DEN   DFW   JFK   ORD 
-## 23881 24732 25124  8327 21643</code></pre>
+## 25764 26026 25770  8856 27790</code></pre>
 <pre class="r"><code>cat(&quot;\nRows after airport filtering:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
 <pre><code>## 
-## Rows after airport filtering: 103707</code></pre>
+## Rows after airport filtering: 114206</code></pre>
 </div>
 <div id="check-cancelled-and-diverted-flights" class="section level2">
-<h2>6. Check Cancelled and Diverted Flights</h2>
-<pre class="r"><code>cancelled_count &lt;- sum(df$CANCELLED == 1, na.rm = TRUE)
+<h2>8. Check Cancelled and Diverted Flights</h2>
+<pre class="r"><code>cancelled_count &lt;- sum(
+  df$CANCELLED == 1,
+  na.rm = TRUE
+)
 
-diverted_count &lt;- sum(df$DIVERTED == 1, na.rm = TRUE)
+diverted_count &lt;- sum(
+  df$DIVERTED == 1,
+  na.rm = TRUE
+)
 
 cat(&quot;Cancelled flights:&quot;, cancelled_count, &quot;\n&quot;)</code></pre>
-<pre><code>## Cancelled flights: 3682</code></pre>
+<pre><code>## Cancelled flights: 1997</code></pre>
 <pre class="r"><code>cat(&quot;Diverted flights:&quot;, diverted_count, &quot;\n&quot;)</code></pre>
-<pre><code>## Diverted flights: 262</code></pre>
+<pre><code>## Diverted flights: 340</code></pre>
 <pre class="r"><code>cat(&quot;\nCancelled flights by origin:\n&quot;)</code></pre>
 <pre><code>## 
 ## Cancelled flights by origin:</code></pre>
 <pre class="r"><code>print(table(df$ORIGIN[df$CANCELLED == 1]))</code></pre>
 <pre><code>## 
-##  ATL  DEN  DFW  JFK  ORD 
-## 1248  313 1592  146  383</code></pre>
+## ATL DEN DFW JFK ORD 
+## 614 166 159 356 702</code></pre>
 <pre class="r"><code>cat(&quot;\nDiverted flights by origin:\n&quot;)</code></pre>
 <pre><code>## 
 ## Diverted flights by origin:</code></pre>
 <pre class="r"><code>print(table(df$ORIGIN[df$DIVERTED == 1]))</code></pre>
 <pre><code>## 
 ## ATL DEN DFW JFK ORD 
-##  53  69  63  17  60</code></pre>
+##  57  85  96  21  81</code></pre>
 </div>
 <div id="remove-cancelled-and-diverted-flights" class="section level2">
-<h2>7. Remove Cancelled and Diverted Flights</h2>
+<h2>9. Remove Cancelled and Diverted Flights</h2>
 <pre class="r"><code>df &lt;- df[
   !is.na(df$CANCELLED) &amp;
-    !is.na(df$DIVERTED) &amp;
-    df$CANCELLED == 0 &amp;
-    df$DIVERTED == 0,
+  !is.na(df$DIVERTED) &amp;
+  df$CANCELLED == 0 &amp;
+  df$DIVERTED == 0,
 ]
 
 cat(
@@ -635,10 +766,10 @@ cat(
   nrow(df),
   &quot;\n&quot;
 )</code></pre>
-<pre><code>## Rows after removing cancelled and diverted flights: 99763</code></pre>
+<pre><code>## Rows after removing cancelled and diverted flights: 111869</code></pre>
 </div>
 <div id="remove-missing-arrival-delay" class="section level2">
-<h2>8. Remove Missing Arrival Delay</h2>
+<h2>10. Remove Missing Arrival Delay</h2>
 <pre class="r"><code>missing_arr_delay &lt;- sum(is.na(df$ARR_DELAY))
 
 df &lt;- df[!is.na(df$ARR_DELAY), ]
@@ -646,10 +777,10 @@ df &lt;- df[!is.na(df$ARR_DELAY), ]
 cat(&quot;Missing arrival delays removed:&quot;, missing_arr_delay, &quot;\n&quot;)</code></pre>
 <pre><code>## Missing arrival delays removed: 0</code></pre>
 <pre class="r"><code>cat(&quot;Rows remaining:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows remaining: 99763</code></pre>
+<pre><code>## Rows remaining: 111869</code></pre>
 </div>
 <div id="create-target-variables" class="section level2">
-<h2>9. Create Target Variables</h2>
+<h2>11. Create Target Variables</h2>
 <pre class="r"><code>df$major_delay_30 &lt;- as.integer(df$ARR_DELAY &gt;= 30)
 
 df$major_delay_60 &lt;- as.integer(df$ARR_DELAY &gt;= 60)
@@ -659,17 +790,17 @@ cat(&quot;Major delay &gt;= 30 minutes:\n&quot;)</code></pre>
 <pre class="r"><code>print(table(df$major_delay_30))</code></pre>
 <pre><code>## 
 ##     0     1 
-## 84825 14938</code></pre>
+## 88282 23587</code></pre>
 <pre class="r"><code>cat(&quot;\nMajor delay &gt;= 60 minutes:\n&quot;)</code></pre>
 <pre><code>## 
 ## Major delay &gt;= 60 minutes:</code></pre>
 <pre class="r"><code>print(table(df$major_delay_60))</code></pre>
 <pre><code>## 
 ##     0     1 
-## 91758  8005</code></pre>
+## 98648 13221</code></pre>
 </div>
 <div id="create-date-features" class="section level2">
-<h2>10. Create Date Features</h2>
+<h2>12. Create Date Features</h2>
 <pre class="r"><code>df$month &lt;- as.integer(format(df$FL_DATE, &quot;%m&quot;))
 
 df$day_of_week &lt;- as.integer(
@@ -691,15 +822,15 @@ cat(&quot;Date features created.\n&quot;)</code></pre>
   )])
 )</code></pre>
 <pre><code>##       FL_DATE month day_of_week day_of_month
-## 13 2025-01-01     1           2            1
-## 14 2025-01-01     1           2            1
-## 15 2025-01-01     1           2            1
-## 16 2025-01-01     1           2            1
-## 17 2025-01-01     1           2            1
-## 18 2025-01-01     1           2            1</code></pre>
+## 1  2025-12-01    12           0            1
+## 4  2025-12-01    12           0            1
+## 6  2025-12-01    12           0            1
+## 8  2025-12-01    12           0            1
+## 9  2025-12-01    12           0            1
+## 10 2025-12-01    12           0            1</code></pre>
 </div>
 <div id="create-scheduled-time-features" class="section level2">
-<h2>11. Create Scheduled Time Features</h2>
+<h2>13. Create Scheduled Time Features</h2>
 <pre class="r"><code>hhmm_to_minutes &lt;- function(value) {
 
   if (is.na(value)) {
@@ -722,6 +853,7 @@ cat(&quot;Date features created.\n&quot;)</code></pre>
   return(hour * 60 + minute)
 }
 
+
 df$scheduled_departure_minutes &lt;- sapply(
   df$CRS_DEP_TIME,
   hhmm_to_minutes
@@ -740,6 +872,7 @@ df$scheduled_arrival_hour &lt;- floor(
   df$scheduled_arrival_minutes / 60
 )
 
+
 cat(&quot;Scheduled time features created.\n&quot;)</code></pre>
 <pre><code>## Scheduled time features created.</code></pre>
 <pre class="r"><code>print(
@@ -753,22 +886,22 @@ cat(&quot;Scheduled time features created.\n&quot;)</code></pre>
   )])
 )</code></pre>
 <pre><code>##    CRS_DEP_TIME CRS_ARR_TIME scheduled_departure_minutes
-## 13         2145         2320                        1305
-## 14         2245           20                        1365
-## 15          642          758                         402
-## 16          520          659                         320
-## 17          732          911                         452
-## 18         1219         1359                         739
+## 1           700         1035                         420
+## 4            17          600                          17
+## 6          2140         2333                        1300
+## 8          1940         2107                        1180
+## 9          1633         1810                         993
+## 10         1228         1542                         748
 ##    scheduled_arrival_minutes scheduled_departure_hour scheduled_arrival_hour
-## 13                      1400                       21                     23
-## 14                        20                       22                      0
-## 15                       478                        6                      7
-## 16                       419                        5                      6
-## 17                       551                        7                      9
-## 18                       839                       12                     13</code></pre>
+## 1                        635                        7                     10
+## 4                        360                        0                      6
+## 6                       1413                       21                     23
+## 8                       1267                       19                     21
+## 9                       1090                       16                     18
+## 10                       942                       12                     15</code></pre>
 </div>
 <div id="check-invalid-scheduled-times" class="section level2">
-<h2>12. Check Invalid Scheduled Times</h2>
+<h2>14. Check Invalid Scheduled Times</h2>
 <pre class="r"><code>invalid_departure_count &lt;- sum(
   is.na(df$scheduled_departure_minutes)
 )
@@ -791,26 +924,22 @@ cat(
 <pre><code>## Invalid arrival times: 0</code></pre>
 </div>
 <div id="check-missing-values" class="section level2">
-<h2>13. Check Missing Values</h2>
+<h2>15. Check Missing Values</h2>
 <pre class="r"><code>missing_values &lt;- colSums(is.na(df))
 
 print(missing_values)</code></pre>
-<pre><code>##                        YEAR                     QUARTER 
+<pre><code>##                     FL_DATE           OP_UNIQUE_CARRIER 
 ##                           0                           0 
-##                       MONTH                DAY_OF_MONTH 
+##           OP_CARRIER_FL_NUM           ORIGIN_AIRPORT_ID 
 ##                           0                           0 
-##                 DAY_OF_WEEK                     FL_DATE 
+##                      ORIGIN             DEST_AIRPORT_ID 
 ##                           0                           0 
-##           OP_UNIQUE_CARRIER       OP_CARRIER_AIRLINE_ID 
+##                        DEST                CRS_DEP_TIME 
 ##                           0                           0 
-##           ORIGIN_AIRPORT_ID                      ORIGIN 
+##                CRS_ARR_TIME                   ARR_DELAY 
 ##                           0                           0 
-##             DEST_AIRPORT_ID                        DEST 
-##                           0                           0 
-##                CRS_DEP_TIME                CRS_ARR_TIME 
-##                           0                           0 
-##                   ARR_DELAY                   CANCELLED 
-##                           0                           0 
+##                   CANCELLED           CANCELLATION_CODE 
+##                           0                      111869 
 ##                    DIVERTED            CRS_ELAPSED_TIME 
 ##                           0                           0 
 ##                    DISTANCE              major_delay_30 
@@ -829,109 +958,109 @@ print(missing_values)</code></pre>
   &quot;\n&quot;
 )</code></pre>
 <pre><code>## 
-## Total missing values: 0</code></pre>
+## Total missing values: 111869</code></pre>
+<pre class="r"><code>cat(&quot;\nColumns with missing values:\n&quot;)</code></pre>
+<pre><code>## 
+## Columns with missing values:</code></pre>
+<pre class="r"><code>print(missing_values[missing_values &gt; 0])</code></pre>
+<pre><code>## CANCELLATION_CODE 
+##            111869</code></pre>
 </div>
 <div id="final-dataset-summary" class="section level2">
-<h2>14. Final Dataset Summary</h2>
+<h2>16. Final Dataset Summary</h2>
 <pre class="r"><code>cat(&quot;Final dataset\n&quot;)</code></pre>
 <pre><code>## Final dataset</code></pre>
 <pre class="r"><code>cat(&quot;Rows:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows: 99763</code></pre>
+<pre><code>## Rows: 111869</code></pre>
 <pre class="r"><code>cat(&quot;Columns:&quot;, ncol(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Columns: 28</code></pre>
+<pre><code>## Columns: 24</code></pre>
 <pre class="r"><code>cat(&quot;\nFlights by origin airport:\n&quot;)</code></pre>
 <pre><code>## 
 ## Flights by origin airport:</code></pre>
 <pre class="r"><code>print(table(df$ORIGIN))</code></pre>
 <pre><code>## 
 ##   ATL   DEN   DFW   JFK   ORD 
-## 22580 24350 23469  8164 21200</code></pre>
+## 25093 25775 25515  8479 27007</code></pre>
 <pre class="r"><code>cat(&quot;\nFlights by airline:\n&quot;)</code></pre>
 <pre><code>## 
 ## Flights by airline:</code></pre>
 <pre class="r"><code>print(table(df$OP_UNIQUE_CARRIER))</code></pre>
 <pre><code>## 
 ##    AA    AS    B6    DL    F9    G4    HA    MQ    NK    OH    OO    UA    WN 
-## 18150   726  2838 21334  3454    19    30  7335  1834  1273 12998 16129  9320 
+## 20330  1159  3278 24015  4642    18    31  9202  1297  2626 14020 17037  9210 
 ##    YX 
-##  4323</code></pre>
+##  5004</code></pre>
 <pre class="r"><code>cat(&quot;\nFirst 5 rows:\n&quot;)</code></pre>
 <pre><code>## 
 ## First 5 rows:</code></pre>
 <pre class="r"><code>print(head(df, 5))</code></pre>
-<pre><code>##    YEAR QUARTER MONTH DAY_OF_MONTH DAY_OF_WEEK    FL_DATE OP_UNIQUE_CARRIER
-## 13 2025       1     1            1           3 2025-01-01                AA
-## 14 2025       1     1            1           3 2025-01-01                AA
-## 15 2025       1     1            1           3 2025-01-01                AA
-## 16 2025       1     1            1           3 2025-01-01                AA
-## 17 2025       1     1            1           3 2025-01-01                AA
-##    OP_CARRIER_AIRLINE_ID ORIGIN_AIRPORT_ID ORIGIN DEST_AIRPORT_ID DEST
-## 13                 19805             10397    ATL           10423  AUS
-## 14                 19805             10397    ATL           10423  AUS
-## 15                 19805             10397    ATL           11057  CLT
-## 16                 19805             10397    ATL           11298  DFW
-## 17                 19805             10397    ATL           11298  DFW
-##    CRS_DEP_TIME CRS_ARR_TIME ARR_DELAY CANCELLED DIVERTED CRS_ELAPSED_TIME
-## 13         2145         2320       -17         0        0              155
-## 14         2245           20        -7         0        0              155
-## 15          642          758        -2         0        0               76
-## 16          520          659       -20         0        0              159
-## 17          732          911        -5         0        0              159
-##    DISTANCE major_delay_30 major_delay_60 month day_of_week day_of_month
-## 13      813              0              0     1           2            1
-## 14      813              0              0     1           2            1
-## 15      226              0              0     1           2            1
-## 16      731              0              0     1           2            1
-## 17      731              0              0     1           2            1
-##    scheduled_departure_minutes scheduled_arrival_minutes
-## 13                        1305                      1400
-## 14                        1365                        20
-## 15                         402                       478
-## 16                         320                       419
-## 17                         452                       551
-##    scheduled_departure_hour scheduled_arrival_hour
-## 13                       21                     23
-## 14                       22                      0
-## 15                        6                      7
-## 16                        5                      6
-## 17                        7                      9</code></pre>
+<pre><code>##      FL_DATE OP_UNIQUE_CARRIER OP_CARRIER_FL_NUM ORIGIN_AIRPORT_ID ORIGIN
+## 1 2025-12-01                AA                 1             12478    JFK
+## 4 2025-12-01                AA              1003             11292    DEN
+## 6 2025-12-01                AA              1005             11298    DFW
+## 8 2025-12-01                AA              1007             11298    DFW
+## 9 2025-12-01                AA              1008             10397    ATL
+##   DEST_AIRPORT_ID DEST CRS_DEP_TIME CRS_ARR_TIME ARR_DELAY CANCELLED
+## 1           12892  LAX          700         1035        -5         0
+## 4           13303  MIA           17          600         5         0
+## 6           14771  SFO         2140         2333        36         0
+## 8           13495  MSY         1940         2107        -9         0
+## 9           11298  DFW         1633         1810        34         0
+##   CANCELLATION_CODE DIVERTED CRS_ELAPSED_TIME DISTANCE major_delay_30
+## 1              &lt;NA&gt;        0              395     2475              0
+## 4              &lt;NA&gt;        0              223     1709              0
+## 6              &lt;NA&gt;        0              233     1464              1
+## 8              &lt;NA&gt;        0               87      448              0
+## 9              &lt;NA&gt;        0              157      731              1
+##   major_delay_60 month day_of_week day_of_month scheduled_departure_minutes
+## 1              0    12           0            1                         420
+## 4              0    12           0            1                          17
+## 6              0    12           0            1                        1300
+## 8              0    12           0            1                        1180
+## 9              0    12           0            1                         993
+##   scheduled_arrival_minutes scheduled_departure_hour scheduled_arrival_hour
+## 1                       635                        7                     10
+## 4                       360                        0                      6
+## 6                      1413                       21                     23
+## 8                      1267                       19                     21
+## 9                      1090                       16                     18</code></pre>
 </div>
 <div id="summary-statistics" class="section level2">
-<h2>15. Summary Statistics</h2>
+<h2>17. Summary Statistics</h2>
 <pre class="r"><code>cat(&quot;Arrival delay statistics:\n&quot;)</code></pre>
 <pre><code>## Arrival delay statistics:</code></pre>
 <pre class="r"><code>print(summary(df$ARR_DELAY))</code></pre>
-<pre><code>##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-##  -79.000  -16.000   -6.000    7.252   11.000 1595.000</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  -70.00  -13.00   -1.00   17.19   22.00 2021.00</code></pre>
 <pre class="r"><code>cat(&quot;\nMajor delay &gt;= 30 minutes:\n&quot;)</code></pre>
 <pre><code>## 
 ## Major delay &gt;= 30 minutes:</code></pre>
 <pre class="r"><code>print(table(df$major_delay_30))</code></pre>
 <pre><code>## 
 ##     0     1 
-## 84825 14938</code></pre>
+## 88282 23587</code></pre>
 <pre class="r"><code>cat(&quot;\nMajor delay &gt;= 60 minutes:\n&quot;)</code></pre>
 <pre><code>## 
 ## Major delay &gt;= 60 minutes:</code></pre>
 <pre class="r"><code>print(table(df$major_delay_60))</code></pre>
 <pre><code>## 
 ##     0     1 
-## 91758  8005</code></pre>
+## 98648 13221</code></pre>
 <pre class="r"><code>cat(&quot;\nDistance statistics:\n&quot;)</code></pre>
 <pre><code>## 
 ## Distance statistics:</code></pre>
 <pre class="r"><code>print(summary(df$DISTANCE))</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    67.0   447.0   731.0   831.6  1055.0  4983.0</code></pre>
+##    67.0   438.0   723.0   827.1  1041.0  4983.0</code></pre>
 <pre class="r"><code>cat(&quot;\nScheduled elapsed time statistics:\n&quot;)</code></pre>
 <pre><code>## 
 ## Scheduled elapsed time statistics:</code></pre>
 <pre class="r"><code>print(summary(df$CRS_ELAPSED_TIME))</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    45.0    99.0   134.0   149.6   178.0   679.0</code></pre>
+##    43.0    98.0   134.0   148.6   176.0   684.0</code></pre>
 </div>
 <div id="save-cleaned-dataset" class="section level2">
-<h2>16. Save Cleaned Dataset</h2>
+<h2>18. Save Cleaned Dataset</h2>
 <pre class="r"><code>if (!dir.exists(&quot;Cleaned Data&quot;)) {
   dir.create(&quot;Cleaned Data&quot;)
 }
@@ -945,11 +1074,11 @@ write.csv(
 cat(&quot;Preprocessing completed.\n&quot;)</code></pre>
 <pre><code>## Preprocessing completed.</code></pre>
 <pre class="r"><code>cat(&quot;Output file:&quot;, OUTPUT_FILE, &quot;\n&quot;)</code></pre>
-<pre><code>## Output file: Cleaned Data/january_cleaned.csv</code></pre>
+<pre><code>## Output file: Cleaned Data/december_cleaned.csv</code></pre>
 <pre class="r"><code>cat(&quot;Final rows:&quot;, nrow(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Final rows: 99763</code></pre>
+<pre><code>## Final rows: 111869</code></pre>
 <pre class="r"><code>cat(&quot;Final columns:&quot;, ncol(df), &quot;\n&quot;)</code></pre>
-<pre><code>## Final columns: 28</code></pre>
+<pre><code>## Final columns: 24</code></pre>
 <pre class="r"><code>cat(&quot;File saved successfully.\n&quot;)</code></pre>
 <pre><code>## File saved successfully.</code></pre>
 </div>

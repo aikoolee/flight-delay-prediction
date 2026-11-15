@@ -1,0 +1,143 @@
+---
+title: "00_split_data"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+INPUT_FOLDER <- "Raw Data New"
+OUTPUT_FOLDER <- "Split Data"
+
+MAX_SIZE_MB <- 49
+MAX_SIZE_BYTES <- MAX_SIZE_MB * 1024^2
+
+if (!dir.exists(OUTPUT_FOLDER)) {
+  dir.create(OUTPUT_FOLDER)
+}
+
+months <- c(
+  "january", "february", "march", "april",
+  "may", "june", "july", "august",
+  "september", "october", "november", "december"
+)
+
+month_abbreviations <- c(
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec"
+)
+
+for (i in seq_along(months)) {
+
+  month <- months[i]
+  month_label <- month_abbreviations[i]
+
+  input_file <- file.path(
+    INPUT_FOLDER,
+    paste0(month, ".csv")
+  )
+
+  if (!file.exists(input_file)) {
+    cat("File not found:", input_file, "\n")
+    next
+  }
+
+  original_size <- file.info(input_file)$size
+  original_size_mb <- original_size / 1024^2
+
+  cat("\nProcessing:", month, "\n")
+  cat("Original size:", round(original_size_mb, 2), "MB\n")
+
+  # Keep original file if below 50 MB
+  if (original_size < 50 * 1024^2) {
+
+    output_file <- file.path(
+      OUTPUT_FOLDER,
+      paste0(month_label, "_2025.csv")
+    )
+
+    file.copy(input_file, output_file, overwrite = TRUE)
+
+    cat("File is below 50 MB. No splitting required.\n")
+    next
+  }
+
+  # Read oversized CSV
+  lines <- readLines(input_file, warn = FALSE)
+
+  header <- lines[1]
+  data_lines <- lines[-1]
+
+  if (length(data_lines) == 0) {
+    stop("No data rows found in: ", input_file)
+  }
+
+  # Calculate approximate bytes per row
+  row_sizes <- nchar(data_lines, type = "bytes") + 1
+
+  part <- 1
+  start_row <- 1
+
+  while (start_row <= length(data_lines)) {
+
+    output_file <- file.path(
+      OUTPUT_FOLDER,
+      paste0(month_label, "_part", part, ".csv")
+    )
+
+    current_size <- nchar(header, type = "bytes") + 1
+    end_row <- start_row - 1
+
+    while (end_row < length(data_lines)) {
+
+      next_size <- row_sizes[end_row + 1]
+
+      if (current_size + next_size > MAX_SIZE_BYTES) {
+        break
+      }
+
+      current_size <- current_size + next_size
+      end_row <- end_row + 1
+    }
+
+    if (end_row < start_row) {
+      stop("A single row exceeds the file size limit.")
+    }
+
+    output_lines <- c(
+      header,
+      data_lines[start_row:end_row]
+    )
+
+    writeLines(
+      output_lines,
+      output_file,
+      useBytes = TRUE
+    )
+
+    actual_size <- file.info(output_file)$size
+    actual_size_mb <- actual_size / 1024^2
+
+    if (actual_size >= 50 * 1024^2) {
+      stop("Output file exceeds 50 MB: ", output_file)
+    }
+
+    cat(
+      basename(output_file),
+      "-",
+      round(actual_size_mb, 2),
+      "MB | Rows:",
+      end_row - start_row + 1,
+      "\n"
+    )
+
+    start_row <- end_row + 1
+    part <- part + 1
+  }
+}
+
+cat("\nAll monthly files processed.\n")
+```
