@@ -1,0 +1,653 @@
+---
+title: "02_pilot_study_EDA"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+# 1. Load Cleaned Data
+
+```{r load-data}
+df <- read.csv(
+  "Cleaned Data/january_cleaned.csv",
+  stringsAsFactors = FALSE
+)
+
+df$FL_DATE <- as.Date(df$FL_DATE)
+
+cat("Number of rows:", nrow(df), "\n")
+cat("Number of columns:", ncol(df), "\n")
+cat("Date range:", as.character(min(df$FL_DATE)),
+    "to", as.character(max(df$FL_DATE)), "\n")
+
+head(df)
+```
+
+# 2. Dataset Overview
+
+## 2.1 Dataset Structure
+
+```{r dataset-structure}
+str(df)
+```
+
+## 2.2 Data Types and Missing Values
+
+```{r data-types}
+data_overview <- data.frame(
+  Column = names(df),
+  Data_Type = sapply(df, function(x) class(x)[1]),
+  Missing_Values = colSums(is.na(df)),
+  Missing_Percentage = round(
+    colMeans(is.na(df)) * 100, 2
+  )
+)
+
+data_overview
+```
+
+## 2.3 Summary Statistics
+
+```{r summary-statistics}
+summary(df)
+```
+
+## 2.4 Daily Flight Volume
+
+```{r flight-by-date}
+flights_by_date <- df %>%
+  group_by(FL_DATE) %>%
+  summarise(
+    Total_Flights = n(),
+    .groups = "drop"
+  )
+
+ggplot(flights_by_date,
+       aes(x = FL_DATE, y = Total_Flights)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Daily Flight Volume in January 2025",
+    x = "Flight Date",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+# 3. Arrival Delay Analysis
+
+## 3.1 Descriptive Statistics of Arrival Delay
+
+```{r arrival-delay-summary}
+delay_statistics <- data.frame(
+  Mean = mean(df$ARR_DELAY, na.rm = TRUE),
+  Median = median(df$ARR_DELAY, na.rm = TRUE),
+  Standard_Deviation = sd(df$ARR_DELAY, na.rm = TRUE),
+  Minimum = min(df$ARR_DELAY, na.rm = TRUE),
+  Maximum = max(df$ARR_DELAY, na.rm = TRUE),
+  Q1 = quantile(df$ARR_DELAY, 0.25, na.rm = TRUE),
+  Q3 = quantile(df$ARR_DELAY, 0.75, na.rm = TRUE)
+)
+
+delay_statistics
+```
+
+## 3.2 Overall Arrival Delay Distribution
+
+```{r delay-histogram}
+ggplot(df, aes(x = ARR_DELAY)) +
+  geom_histogram(
+    binwidth = 10,
+    fill = "steelblue",
+    colour = "white"
+  ) +
+  labs(
+    title = "Distribution of Arrival Delays",
+    subtitle = "All January 2025 flights",
+    x = "Arrival Delay (minutes)",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 3.3 Arrival Delay Distribution (Focused Range)
+
+This graph focuses on delays between -60 and 300 minutes to make the main distribution easier to observe.
+
+```{r delay-histogram-focused}
+ggplot(
+  filter(df, ARR_DELAY >= -60, ARR_DELAY <= 300),
+  aes(x = ARR_DELAY)
+) +
+  geom_histogram(
+    binwidth = 10,
+    fill = "steelblue",
+    colour = "white"
+  ) +
+  labs(
+    title = "Arrival Delay Distribution (-60 to 300 Minutes)",
+    x = "Arrival Delay (minutes)",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 3.4 Arrival Delay Boxplot
+
+```{r delay-boxplot}
+ggplot(df, aes(y = ARR_DELAY)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Boxplot of Arrival Delays",
+    y = "Arrival Delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+# 4. Target Variable Analysis
+
+## 4.1 Major Delay Distribution (30 Minutes)
+
+```{r target-30}
+target_30 <- df %>%
+  count(major_delay_30) %>%
+  mutate(
+    Percentage = round(n / sum(n) * 100, 2),
+    Status = ifelse(
+      major_delay_30 == 1,
+      "Delay >= 30 minutes",
+      "Delay < 30 minutes"
+    )
+  )
+
+target_30
+
+ggplot(target_30, aes(x = Status, y = n, fill = Status)) +
+  geom_col() +
+  geom_text(
+    aes(label = paste0(n, " (", Percentage, "%)")),
+    vjust = -0.5
+  ) +
+  labs(
+    title = "Distribution of Flights by 30-Minute Delay",
+    x = NULL,
+    y = "Number of Flights"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## 4.2 Major Delay Distribution (60 Minutes)
+
+```{r target-60}
+target_60 <- df %>%
+  count(major_delay_60) %>%
+  mutate(
+    Percentage = round(n / sum(n) * 100, 2),
+    Status = ifelse(
+      major_delay_60 == 1,
+      "Delay >= 60 minutes",
+      "Delay < 60 minutes"
+    )
+  )
+
+target_60
+
+ggplot(target_60, aes(x = Status, y = n, fill = Status)) +
+  geom_col() +
+  geom_text(
+    aes(label = paste0(n, " (", Percentage, "%)")),
+    vjust = -0.5
+  ) +
+  labs(
+    title = "Distribution of Flights by 60-Minute Delay",
+    x = NULL,
+    y = "Number of Flights"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+# 5. Flight Analysis by Origin Airport
+
+## 5.1 Number of Flights by Airport
+
+```{r airport-volume}
+airport_summary <- df %>%
+  group_by(ORIGIN) %>%
+  summarise(
+    Total_Flights = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Total_Flights))
+
+airport_summary
+
+ggplot(
+  airport_summary,
+  aes(
+    x = reorder(ORIGIN, Total_Flights),
+    y = Total_Flights
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Flight Volume by Origin Airport",
+    x = "Origin Airport",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 5.2 Delay Rate by Origin Airport
+
+```{r airport-delay-rate}
+airport_delay <- df %>%
+  group_by(ORIGIN) %>%
+  summarise(
+    Total_Flights = n(),
+    Delayed_30 = sum(major_delay_30 == 1),
+    Delay_Rate_30 = mean(major_delay_30) * 100,
+    Delayed_60 = sum(major_delay_60 == 1),
+    Delay_Rate_60 = mean(major_delay_60) * 100,
+    Average_Delay = mean(ARR_DELAY),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Delay_Rate_30))
+
+airport_delay
+
+ggplot(
+  airport_delay,
+  aes(
+    x = reorder(ORIGIN, Delay_Rate_30),
+    y = Delay_Rate_30
+  )
+) +
+  geom_col(fill = "coral") +
+  coord_flip() +
+  labs(
+    title = "30-Minute Delay Rate by Origin Airport",
+    x = "Origin Airport",
+    y = "Delay Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+## 5.3 Average Arrival Delay by Airport
+
+```{r airport-average-delay}
+ggplot(
+  airport_delay,
+  aes(
+    x = reorder(ORIGIN, Average_Delay),
+    y = Average_Delay
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Average Arrival Delay by Origin Airport",
+    x = "Origin Airport",
+    y = "Average Arrival Delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+# 6. Flight Analysis by Airline
+
+## 6.1 Number of Flights by Airline
+
+```{r airline-volume}
+airline_summary <- df %>%
+  group_by(OP_UNIQUE_CARRIER) %>%
+  summarise(
+    Total_Flights = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Total_Flights))
+
+airline_summary
+
+ggplot(
+  airline_summary,
+  aes(
+    x = reorder(OP_UNIQUE_CARRIER, Total_Flights),
+    y = Total_Flights
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Flight Volume by Airline",
+    x = "Airline",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 6.2 Delay Rate by Airline
+
+```{r airline-delay-rate}
+airline_delay <- df %>%
+  group_by(OP_UNIQUE_CARRIER) %>%
+  summarise(
+    Total_Flights = n(),
+    Delay_Rate_30 = mean(major_delay_30) * 100,
+    Delay_Rate_60 = mean(major_delay_60) * 100,
+    Average_Delay = mean(ARR_DELAY),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Delay_Rate_30))
+
+airline_delay
+
+ggplot(
+  airline_delay,
+  aes(
+    x = reorder(OP_UNIQUE_CARRIER, Delay_Rate_30),
+    y = Delay_Rate_30
+  )
+) +
+  geom_col(fill = "coral") +
+  coord_flip() +
+  labs(
+    title = "30-Minute Delay Rate by Airline",
+    x = "Airline",
+    y = "Delay Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+# 7. Temporal Analysis
+
+## 7.1 Delay Rate by Day of Week
+
+Day of week: Sunday = 0, Monday = 1, ..., Saturday = 6.
+
+```{r delay-by-day}
+day_summary <- df %>%
+  group_by(day_of_week) %>%
+  summarise(
+    Total_Flights = n(),
+    Delay_Rate_30 = mean(major_delay_30) * 100,
+    Average_Delay = mean(ARR_DELAY),
+    .groups = "drop"
+  )
+
+day_summary$Day <- factor(
+  day_summary$day_of_week,
+  levels = 0:6,
+  labels = c(
+    "Sunday", "Monday", "Tuesday",
+    "Wednesday", "Thursday", "Friday", "Saturday"
+  )
+)
+
+day_summary
+
+ggplot(day_summary, aes(x = Day, y = Delay_Rate_30)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "30-Minute Delay Rate by Day of Week",
+    x = "Day of Week",
+    y = "Delay Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+## 7.2 Delay Rate by Scheduled Departure Hour
+
+```{r delay-by-departure-hour}
+hour_summary <- df %>%
+  group_by(scheduled_departure_hour) %>%
+  summarise(
+    Total_Flights = n(),
+    Delay_Rate_30 = mean(major_delay_30) * 100,
+    Average_Delay = mean(ARR_DELAY),
+    .groups = "drop"
+  )
+
+hour_summary
+
+ggplot(
+  hour_summary,
+  aes(
+    x = scheduled_departure_hour,
+    y = Delay_Rate_30
+  )
+) +
+  geom_line() +
+  geom_point(size = 2) +
+  scale_x_continuous(breaks = 0:23) +
+  labs(
+    title = "30-Minute Delay Rate by Scheduled Departure Hour",
+    x = "Scheduled Departure Hour",
+    y = "Delay Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+## 7.3 Average Arrival Delay by Departure Hour
+
+```{r average-delay-by-hour}
+ggplot(
+  hour_summary,
+  aes(
+    x = scheduled_departure_hour,
+    y = Average_Delay
+  )
+) +
+  geom_line() +
+  geom_point(size = 2) +
+  scale_x_continuous(breaks = 0:23) +
+  labs(
+    title = "Average Arrival Delay by Departure Hour",
+    x = "Scheduled Departure Hour",
+    y = "Average Arrival Delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+# 8. Route Analysis
+
+## 8.1 Top 15 Routes by Flight Volume
+
+```{r top-routes}
+route_summary <- df %>%
+  group_by(ORIGIN, DEST) %>%
+  summarise(
+    Total_Flights = n(),
+    Delay_Rate_30 = mean(major_delay_30) * 100,
+    Average_Delay = mean(ARR_DELAY),
+    .groups = "drop"
+  )
+
+top_routes <- route_summary %>%
+  arrange(desc(Total_Flights)) %>%
+  slice_head(n = 15)
+
+top_routes
+
+ggplot(
+  top_routes,
+  aes(
+    x = reorder(
+      paste(ORIGIN, DEST, sep = "-"),
+      Total_Flights
+    ),
+    y = Total_Flights
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Top 15 Routes by Flight Volume",
+    x = "Route",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 8.2 Delay Rate by Top 15 Routes
+
+```{r route-delay-rate}
+ggplot(
+  top_routes,
+  aes(
+    x = reorder(
+      paste(ORIGIN, DEST, sep = "-"),
+      Delay_Rate_30
+    ),
+    y = Delay_Rate_30
+  )
+) +
+  geom_col(fill = "coral") +
+  coord_flip() +
+  labs(
+    title = "30-Minute Delay Rate of Top 15 Routes",
+    x = "Route",
+    y = "Delay Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+# 9. Numerical Variable Analysis
+
+## 9.1 Flight Distance Distribution
+
+```{r distance-distribution}
+summary(df$DISTANCE)
+
+ggplot(df, aes(x = DISTANCE)) +
+  geom_histogram(
+    binwidth = 100,
+    fill = "steelblue",
+    colour = "white"
+  ) +
+  labs(
+    title = "Distribution of Flight Distance",
+    x = "Distance (miles)",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 9.2 Scheduled Elapsed Time Distribution
+
+```{r elapsed-time-distribution}
+summary(df$CRS_ELAPSED_TIME)
+
+ggplot(df, aes(x = CRS_ELAPSED_TIME)) +
+  geom_histogram(
+    binwidth = 15,
+    fill = "steelblue",
+    colour = "white"
+  ) +
+  labs(
+    title = "Distribution of Scheduled Flight Duration",
+    x = "Scheduled Elapsed Time (minutes)",
+    y = "Number of Flights"
+  ) +
+  theme_minimal()
+```
+
+## 9.3 Distance vs Arrival Delay
+
+```{r distance-vs-delay}
+ggplot(df, aes(x = DISTANCE, y = ARR_DELAY)) +
+  geom_point(alpha = 0.15) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Flight Distance vs Arrival Delay",
+    x = "Distance (miles)",
+    y = "Arrival Delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+## 9.4 Scheduled Elapsed Time vs Arrival Delay
+
+```{r elapsed-vs-delay}
+ggplot(
+  df,
+  aes(x = CRS_ELAPSED_TIME, y = ARR_DELAY)
+) +
+  geom_point(alpha = 0.15) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Scheduled Flight Duration vs Arrival Delay",
+    x = "Scheduled Elapsed Time (minutes)",
+    y = "Arrival Delay (minutes)"
+  ) +
+  theme_minimal()
+```
+
+# 10. Correlation Analysis
+
+```{r correlation}
+numeric_data <- df %>%
+  select(
+    ARR_DELAY,
+    DISTANCE,
+    CRS_ELAPSED_TIME,
+    scheduled_departure_hour,
+    scheduled_arrival_hour
+  )
+
+correlation_matrix <- cor(
+  numeric_data,
+  use = "complete.obs"
+)
+
+round(correlation_matrix, 3)
+```
+
+# 11. Final EDA Summary
+
+```{r final-summary}
+final_summary <- data.frame(
+  Metric = c(
+    "Total Flights",
+    "Average Arrival Delay",
+    "Median Arrival Delay",
+    "Maximum Arrival Delay",
+    "Flights Delayed >= 30 Minutes",
+    "30-Minute Delay Rate (%)",
+    "Flights Delayed >= 60 Minutes",
+    "60-Minute Delay Rate (%)",
+    "Number of Origin Airports",
+    "Number of Airlines",
+    "Number of Routes"
+  ),
+  Value = c(
+    nrow(df),
+    round(mean(df$ARR_DELAY), 2),
+    median(df$ARR_DELAY),
+    max(df$ARR_DELAY),
+    sum(df$major_delay_30 == 1),
+    round(mean(df$major_delay_30) * 100, 2),
+    sum(df$major_delay_60 == 1),
+    round(mean(df$major_delay_60) * 100, 2),
+    n_distinct(df$ORIGIN),
+    n_distinct(df$OP_UNIQUE_CARRIER),
+    n_distinct(paste(df$ORIGIN, df$DEST))
+  )
+)
+
+final_summary
+```
